@@ -33,9 +33,19 @@ done
 dnf5 -y remove "${REMOVE[@]}"
 
 ### 3. Install the linux-surface kernel and Surface utilities
+# kernel-surface-modules-extra - the extra drivers that stock Aurora ships as
+#                                kernel-modules-extra, built for this kernel
 # iptsd           - touchscreen and pen daemon
 # surface-control - performance mode and other Surface controls
-dnf5 -y install --allowerasing kernel-surface iptsd surface-control
+# libwacom-surface - touchscreen and pen descriptions for Surface devices
+#                    (replaces the stock libwacom, as linux-surface recommends)
+# kernel-surface-default-watchdog is left out on purpose: it keeps the Surface
+# kernel as the GRUB default on classic Fedora, but this image has no other
+# kernel, and the script does not understand the ostree /boot layout.
+dnf5 -y install --allowerasing --exclude=kernel-surface-default-watchdog \
+    kernel-surface kernel-surface-modules-extra \
+    iptsd surface-control \
+    libwacom-surface libwacom-surface-data
 
 ### 4. Make sure the new kernel has its initramfs
 # The kernel package tries to generate it through rpm-ostree, which can fail

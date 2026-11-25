@@ -213,6 +213,12 @@ generate-build-tags $target_image=image_name $tag=default_tag:
     BUILD_TAGS+=("${tag}")
     BUILD_TAGS+=("${tag}-${DATE}")
 
+    # Fedora release of the built image, read from the image itself:
+    # "45" follows the newest build on Fedora 45, "45.20261125" pins one build
+    FEDORA=$(podman run --rm --entrypoint /usr/bin/rpm "${target_image}:${tag}" -E %fedora)
+    BUILD_TAGS+=("${FEDORA}")
+    BUILD_TAGS+=("${FEDORA}.${DATE}")
+
     echo "${BUILD_TAGS[@]}"
 
 # Tag Images

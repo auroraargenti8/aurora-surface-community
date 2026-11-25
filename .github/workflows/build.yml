@@ -162,3 +162,37 @@ jobs:
           # use old bundle format, so we can use newer cosign 3.X.X instead of 2.X.X
           cosign sign -y --new-bundle-format=false --use-signing-config=false --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
 
+  # Keep only the newest builds in the registry. Every build is one image
+  # version plus one signature version, so 60 versions = about 30 builds.
+  cleanup:
+    name: Delete old image versions
+    needs: build_push
+    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-26.04
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old versions
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: ${{ github.event.repository.name }}
+          package-type: container
+          min-versions-to-keep: 60
+
+  # GitHub disables scheduled workflows in a public repository after 60 days
+  # without commits. Re-enabling this workflow through the API on every
+  # scheduled run keeps the daily build alive without dummy commits
+  # (same approach as liskin/gh-workflow-keepalive).
+  keepalive:
+    name: Keep the schedule alive
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: write
+    steps:
+      - name: Re-enable this workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method PUT "repos/${{ github.repository }}/actions/workflows/build.yml/enable"
+
